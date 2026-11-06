@@ -1,0 +1,21 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "functions": {
+    "api/private_parser.py": {
+      "includeFiles": "tools/**",
+      "excludeFiles": "{data/**,work/**,docs/**,ios/**,tests/**,tests-js/**,node_modules/**,.next/**,.git/**,.env*,*.pdf,*.xlsx,*.csv,*.enc}",
+      "maxDuration": 60
+    }
+  },
+  "regions": [
+    "gru1"
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/reminders",
+      "schedule": "0 12 * * *"
+    }
+  ]
+}

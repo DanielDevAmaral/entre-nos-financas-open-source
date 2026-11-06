@@ -1,0 +1,58 @@
+{
+  "name": "financas-familia-local",
+  "version": "0.4.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "dev": "node scripts/serve.mjs dev",
+    "start": "node scripts/serve.mjs start",
+    "build": "node scripts/build.mjs",
+    "test": "node --disable-warning=ExperimentalWarning --test --test-concurrency=2 --experimental-strip-types tests-js/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src app scripts tests-js proxy.ts next.config.ts --max-warnings=0",
+    "backup": "node --experimental-strip-types scripts/backup.ts",
+    "restore": "node --experimental-strip-types scripts/backup.ts restore",
+    "test:http": "node scripts/test-http.mjs",
+    "ios:prepare": "node scripts/prepare-ios.mjs",
+    "ios:sync": "cap sync ios",
+    "migrate:private": "node --experimental-strip-types scripts/migrate-private.ts",
+    "package:source": "node scripts/package-source.mjs",
+    "security:check": "node scripts/security-check.mjs",
+    "check:artifacts": "node scripts/check-private-artifacts.mjs",
+    "migrate:db": "node --experimental-strip-types scripts/migrate-database.ts",
+    "check:public": "node scripts/check-public-source.mjs"
+  },
+  "dependencies": {
+    "@capacitor/core": "8.4.3",
+    "@capacitor/ios": "8.4.3",
+    "@electric-sql/pglite": "0.5.8",
+    "next": "16.4.2",
+    "pg": "^8.23.1",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "sharp": "0.35.5",
+    "web-push": "^3.6.7",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.4.3",
+    "@types/node": "^24.0.0",
+    "@types/pg": "^8.23.1",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/web-push": "^3.6.4",
+    "eslint": "9.39.5",
+    "prettier": "^3.9.9",
+    "typescript": "5.9.3",
+    "typescript-eslint": "^8.0.0"
+  },
+  "license": "MIT",
+  "overrides": {
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "11.0.1"
+    }
+  }
+}
