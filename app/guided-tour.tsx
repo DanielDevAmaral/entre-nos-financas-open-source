@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useId, useRef, useState } from "react";
+import { useAsyncAction } from "./use-async-action";
 import { tourLayout } from "../src/domain/tour-layout";
 import type { Preferences } from "../src/domain/preferences";
 const steps = [
@@ -42,9 +43,10 @@ export function GuidedTour({
     bubble = useRef<HTMLDivElement>(null),
     start = useRef(onStart),
     [step, setStep] = useState(0),
-    [busy, setBusy] = useState(false),
-    [error, setError] = useState(""),
     [position, setPosition] = useState<Position | null>(null);
+  const { busy, error, run } = useAsyncAction({
+    fallbackError: "Não foi possível concluir.",
+  });
   start.current = onStart;
   const open = replay || !preferences.onboarding_done,
     uid = useId().replace(/[^a-zA-Z0-9]/g, "");
@@ -111,10 +113,7 @@ export function GuidedTour({
     };
   }, [open, step]);
   async function finish() {
-    if (busy) return;
-    setBusy(true);
-    setError("");
-    try {
+    const ok = await run(async () => {
       if (!preferences.onboarding_done) {
         const r = await fetch("/api/profile/onboarding", {
           method: "POST",
@@ -125,12 +124,10 @@ export function GuidedTour({
         if (!r.ok) throw new Error(p.error || "Não foi possível concluir.");
         onSaved(p);
       }
+    });
+    if (ok) {
       dialog.current?.close();
       onClose();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Não foi possível concluir.");
-    } finally {
-      setBusy(false);
     }
   }
   return (

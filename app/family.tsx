@@ -37,6 +37,7 @@ import { BankPanel } from "./family-banks";
 import { InstallApp } from "./mobile";
 import { FamilyAdministration } from "./family-administration";
 import { FamilyIcon, FuturePanel, HelpPanel } from "./family-extras";
+import { useAsyncAction } from "./use-async-action";
 
 type Data = {
   cards: Awaited<ReturnType<typeof readCards>>;
@@ -113,10 +114,10 @@ export default function FamilyApp() {
     [month, setMonth] = useState(() => today().slice(0, 7));
   const currency: Currency = "BRL";
   const [tab, setTab] = useState<Tab>("month"),
-    [hidden, setHidden] = useState(false),
-    [busy, setBusy] = useState(false),
-    [error, setError] = useState(""),
-    [notice, setNotice] = useState("");
+    [hidden, setHidden] = useState(false);
+  const { busy, error, notice, setError, run } = useAsyncAction({
+    fallbackError: "Não foi possível salvar.",
+  });
   const [modal, setModal] = useState<
       "item" | "movement" | "check" | "entry" | "period" | null
     >(null),
@@ -239,22 +240,11 @@ export default function FamilyApp() {
       window.clearInterval(timer);
     };
   }, [auth?.user?.email, auth?.user?.role, load]);
-  async function work(
+  function work(
     action: () => Promise<void>,
     message = "Salvo para vocês dois.",
   ) {
-    if (busy) return;
-    setBusy(true);
-    setError("");
-    setNotice("");
-    try {
-      await action();
-      setNotice(message);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Não foi possível salvar.");
-    } finally {
-      setBusy(false);
-    }
+    return run(action, message);
   }
   function open(
     kind: "item" | "movement" | "check" | "entry" | "period",

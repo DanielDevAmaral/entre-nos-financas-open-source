@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useAsyncAction } from "./use-async-action";
 type Family = {
   id: string;
   name: string;
@@ -18,10 +19,8 @@ async function request(body?: unknown) {
 }
 export function FamilyAdministration() {
   const [families, setFamilies] = useState<Family[] | null>(null),
-    [busy, setBusy] = useState(false),
-    [message, setMessage] = useState(""),
-    [error, setError] = useState(""),
     [requestId, setRequestId] = useState(() => crypto.randomUUID());
+  const { busy, error, notice, run } = useAsyncAction();
   return (
     <section
       className="family-card family-administration"
@@ -34,14 +33,11 @@ export function FamilyAdministration() {
       </p>
       <button
         disabled={busy}
-        onClick={async () => {
-          setError("");
-          try {
+        onClick={() =>
+          void run(async () => {
             setFamilies((await request()).families);
-          } catch (e) {
-            setError((e as Error).message);
-          }
-        }}
+          })
+        }
       >
         Ver famílias cadastradas
       </button>
@@ -62,41 +58,33 @@ export function FamilyAdministration() {
         <summary>Adicionar um casal</summary>
         <form
           autoComplete="off"
-          onSubmit={async (e) => {
+          onSubmit={(e) => {
             e.preventDefault();
-            if (busy) return;
             const form = e.currentTarget,
               v = new FormData(form);
-            setBusy(true);
-            setError("");
-            setMessage("");
-            try {
-              await request({
-                request_id: requestId,
-                familyName: v.get("familyName"),
-                currentPassword: v.get("currentPassword"),
-                first: {
-                  name: v.get("firstName"),
-                  email: v.get("firstEmail"),
-                  password: v.get("firstPassword"),
-                },
-                second: {
-                  name: v.get("secondName"),
-                  email: v.get("secondEmail"),
-                  password: v.get("secondPassword"),
-                },
-              });
-              form.reset();
-              setRequestId(crypto.randomUUID());
-              setMessage(
-                "Casal cadastrado. Cada pessoa já pode entrar com seu e-mail e sua senha. Oriente a trocar a senha inicial no próprio perfil.",
-              );
-              setFamilies((await request()).families);
-            } catch (e) {
-              setError((e as Error).message);
-            } finally {
-              setBusy(false);
-            }
+            void run(
+              async () => {
+                await request({
+                  request_id: requestId,
+                  familyName: v.get("familyName"),
+                  currentPassword: v.get("currentPassword"),
+                  first: {
+                    name: v.get("firstName"),
+                    email: v.get("firstEmail"),
+                    password: v.get("firstPassword"),
+                  },
+                  second: {
+                    name: v.get("secondName"),
+                    email: v.get("secondEmail"),
+                    password: v.get("secondPassword"),
+                  },
+                });
+                form.reset();
+                setRequestId(crypto.randomUUID());
+                setFamilies((await request()).families);
+              },
+              "Casal cadastrado. Cada pessoa já pode entrar com seu e-mail e sua senha. Oriente a trocar a senha inicial no próprio perfil.",
+            );
           }}
         >
           <label>
@@ -162,7 +150,7 @@ export function FamilyAdministration() {
         </form>
       </details>
       {error && <p role="alert">{error}</p>}
-      {message && <p role="status">{message}</p>}
+      {notice && <p role="status">{notice}</p>}
     </section>
   );
 }
