@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
+import { useAsyncAction } from "./use-async-action";
 
 type Config = {
   publicKey: string;
@@ -54,9 +55,9 @@ async function readyWorker() {
 export function NotificationsPanel() {
   const [config, setConfig] = useState<Config | null>(null);
   const [device, setDevice] = useState<Device | null>(null);
-  const [busy, setBusy] = useState(false),
-    [error, setError] = useState(""),
-    [notice, setNotice] = useState("");
+  const { busy, error, notice, setError, setNotice, run } = useAsyncAction({
+    fallbackError: "Tente novamente.",
+  });
   const refresh = useCallback(async () => {
     const ios =
       /iPhone|iPad|iPod/.test(navigator.userAgent) ||
@@ -98,19 +99,8 @@ export function NotificationsPanel() {
     document.addEventListener("visibilitychange", update);
     return () => document.removeEventListener("visibilitychange", update);
   }, [refresh]);
-  async function work(action: () => Promise<void>) {
-    if (busy) return;
-    setBusy(true);
-    setError("");
-    setNotice("");
-    try {
-      await action();
-      await refresh();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Tente novamente.");
-    } finally {
-      setBusy(false);
-    }
+  function work(action: () => Promise<void>) {
+    void run(action, refresh);
   }
   async function enable() {
     if (!device || !config || !device.supported || device.needsInstall)

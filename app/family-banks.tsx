@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, type FormEvent } from "react";
+import { useAsyncAction } from "./use-async-action";
 import { reviewGroups, type ReviewGroup } from "../src/domain/bank-analysis.ts";
 import type { readBanks, renewBank } from "../src/server/banks.ts";
 import { pluggyItemId, bankSetupStage } from "../src/domain/bank-onboarding.ts";
@@ -49,14 +50,14 @@ export function BankPanel({
   initialAccount?: string;
 }) {
   const [data, setData] = useState<Banks | null>(null),
-    [busy, setBusy] = useState(false),
-    [error, setError] = useState(""),
-    [notice, setNotice] = useState(""),
     [offset, setOffset] = useState(0),
     [group, setGroup] = useState(""),
     [account, setAccount] = useState(initialAccount),
     [selected, setSelected] = useState<string | null>(null),
     [guideStep, setGuideStep] = useState<number | null>(null);
+  const { busy, error, notice, setError, setNotice, run } = useAsyncAction({
+    fallbackError: "Tente novamente.",
+  });
   const load = async (page = offset, filter = group) => {
     const result = await api<Banks>(
       "banks?offset=" +
@@ -93,26 +94,24 @@ export function BankPanel({
       window.removeEventListener("family-banks-updated", update);
     };
   }, [offset, group, account]);
-  async function work(
+  function work(
     action: () => Promise<unknown>,
     message: string,
     financial = false,
   ) {
-    if (busy) return;
-    setBusy(true);
-    setError("");
-    setNotice("");
-    try {
-      await action();
-      await load();
-      if (financial) await refresh();
-      setNotice(message);
-      setSelected(null);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Tente novamente.");
-    } finally {
-      setBusy(false);
-    }
+    return run(
+      async () => {
+        await action();
+      },
+      async () => {
+        // Pós-sucesso: recarrega a lista e, se financeiro, os totais. Se algum
+        // falhar, o run() degrada suave (loga no console) e mantém o sucesso.
+        await load();
+        if (financial) await refresh();
+        setNotice(message);
+        setSelected(null);
+      },
+    );
   }
   const step = guideStep ?? (data ? bankSetupStage(data) : 1);
   const ownConnections =
@@ -742,12 +741,12 @@ export function BankPanel({
                   connection={c.id}
                   busy={busy}
                   ready={data.storageReady}
-                  completed={() =>
-                    work(
+                  completed={async () => {
+                    await work(
                       async () => {},
                       "Autorização renovada, mantendo as mesmas contas. Leia os movimentos e confira possíveis duplicidades.",
-                    )
-                  }
+                    );
+                  }}
                 />
               )}
             </article>
@@ -1026,13 +1025,13 @@ export function BankPanel({
                                 categories={categories}
                                 accounts={accounts}
                                 busy={busy}
-                                submit={(body) =>
-                                  work(
+                                submit={async (body) => {
+                                  await work(
                                     () => api("banks/review", body),
                                     "Movimento salvo uma única vez. O planejamento não foi marcado como pago automaticamente.",
                                     true,
-                                  )
-                                }
+                                  );
+                                }}
                               />
                             </details>
                           </>
